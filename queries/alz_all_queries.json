@@ -325,7 +325,7 @@
       "severity": "High",
       "text": "Configure Identity network segmentation through the use of a virtual Network and peer back to the hub. Providing authentication inside application landing zone (legacy).",
       "queryable": true,
-      "graph": "resources | where type =~ 'microsoft.network/virtualnetworks/virtualnetworkpeerings' | extend remoteVnet=tostring(properties.remoteVirtualNetwork.id) | extend peerState=tostring(properties.peeringState) | extend compliant = iff(peerState =~ 'Connected', true, false) | project id, name, resourceGroup, subscriptionId, checkItem='VNet Peering State', currentValue=strcat('State: ', peerState, ', Remote: ', tostring(split(remoteVnet,'/')[-1])), expectedValue='Connected', compliant"
+      "graph": "resources | where type =~ 'microsoft.network/virtualnetworks' | mv-expand peering = properties.virtualNetworkPeerings | extend peerName = tostring(peering.name) | extend peerState = tostring(peering.properties.peeringState) | extend remoteVnet = tostring(peering.properties.remoteVirtualNetwork.id) | extend allowAccess = tostring(peering.properties.allowVirtualNetworkAccess) | extend compliant = iff(peerState =~ 'Connected', true, false) | project id, name, resourceGroup, subscriptionId,   peeringName=peerName,   checkItem='VNet Peering to Hub',   currentValue=strcat('State: ', peerState, ', Remote: ', tostring(split(remoteVnet, '/')[-1]), ', AllowAccess: ', allowAccess),   expectedValue='Connected peering to hub', compliant"
     },
     {
       "guid": "d4d1ad54-1abc-4919-b267-3f342d3b49e4",
@@ -883,7 +883,7 @@
       "severity": "High",
       "text": "Add diagnostic settings to save DDoS related logs for all the protected public IP addresses (DDoS IP or Network Protection).",
       "queryable": true,
-      "graph": "resources | where type == 'microsoft.insights/diagnosticsettings' | extend lowerId = tolower(id) | where lowerId has '/microsoft.network/publicipaddresses/' or lowerId has '/microsoft.network/ddosprotectionplans/' | extend compliant = 1 | project name, id, compliant"
+      "graph": "resources | where type =~ 'microsoft.network/publicipaddresses' | extend ddosSettings = properties.ddosSettings | extend protectionMode = tostring(ddosSettings.protectionMode) | extend hasDDoS = iff(isnotempty(protectionMode) and protectionMode !~ 'VirtualNetworkInherited', true, false) | project id, name, resourceGroup, subscriptionId,   checkItem='DDoS on Public IP',   currentValue=strcat('Protection: ', iff(isnotempty(protectionMode), protectionMode, 'None/Inherited')),   expectedValue='DDoS logs enabled on protected IPs', compliant=hasDDoS | union (   resources   | where type =~ 'microsoft.network/ddosprotectionplans'   | project id, name, resourceGroup, subscriptionId,     checkItem='DDoS Protection Plan',     currentValue=strcat('Plan exists: ', name),     expectedValue='DDoS Protection Plan deployed', compliant=true )"
     },
     {
       "guid": "3c5a808d-c695-4c14-a63c-c7ab7a510e41",
@@ -1207,7 +1207,7 @@
       "severity": "High",
       "text": "Add diagnostic settings to save logs, using the Resource Specific destination table, for all Azure Firewall deployments.",
       "queryable": true,
-      "graph": "resources | where type == 'microsoft.insights/diagnosticsettings' | extend lowerId = tolower(id), destinationType = tostring(properties.logAnalyticsDestinationType) | where lowerId has '/microsoft.network/azurefirewalls/' | extend compliant = iff(destinationType == 'Dedicated', 1, 0) | project name, id, destinationType, compliant"
+      "graph": "resources | where type =~ 'microsoft.network/azurefirewalls' | extend diagTarget = id | join kind=leftouter (   resources   | where type =~ 'microsoft.insights/diagnosticsettings'   | extend parentId = tolower(substring(id, 0, indexof(tolower(id), '/providers/microsoft.insights')))   | where parentId has 'azurefirewalls'   | extend destType = tostring(properties.logAnalyticsDestinationType)   | project parentId, destType, diagName=name ) on $left.id == $right.parentId | extend compliant = iff(isnotempty(diagName) and destType =~ 'Dedicated', true, false) | project id, name, resourceGroup, subscriptionId,   checkItem='Firewall Diagnostic Settings',   currentValue=iff(isnotempty(diagName), strcat('DiagSettings: ', diagName, ', DestType: ', destType), 'No diagnostic settings'),   expectedValue='Resource-specific destination table', compliant"
     },
     {
       "guid": "e960fc6b-4ab2-4db6-9609-3745135f9ffa",
@@ -1882,7 +1882,7 @@
       "severity": "High",
       "text": "Add diagnostic settings to save WAF logs from application delivery services like Azure Front Door and Azure Application Gateway. Regularly review the logs to check for attacks and for false positive detections.",
       "queryable": true,
-      "graph": "resources | where type == 'microsoft.insights/diagnosticsettings' | extend lowerId = tolower(id), logsText = tolower(tostring(properties.logs)) | where lowerId has '/microsoft.network/applicationgateways/' or lowerId has '/microsoft.cdn/profiles/' or lowerId has '/microsoft.network/frontdoors/' | extend compliant = iff(logsText has 'waf' or logsText has 'webapplicationfirewall', 1, 0) | project name, id, compliant"
+      "graph": "resources | where type =~ 'microsoft.network/applicationgateways' | extend wafEnabled = tostring(properties.webApplicationFirewallConfiguration.enabled) | extend firewallPolicyId = tostring(properties.firewallPolicy.id) | extend hasWAF = iff(wafEnabled =~ 'true' or isnotempty(firewallPolicyId), true, false) | project id, name, resourceGroup, subscriptionId,   checkItem='App GW WAF Config',   currentValue=strcat('WAF: ', iff(hasWAF, 'Enabled', 'Disabled'), iff(isnotempty(firewallPolicyId), strcat(', Policy: ', tostring(split(firewallPolicyId, '/')[-1])), '')),   expectedValue='WAF enabled with diagnostic logging', compliant=hasWAF | union (   resources   | where type =~ 'microsoft.cdn/profiles'   | extend skuName = tostring(sku.name)   | extend hasWAF = iff(skuName has 'Premium', true, false)   | project id, name, resourceGroup, subscriptionId,     checkItem='Front Door WAF',     currentValue=strcat('SKU: ', skuName),     expectedValue='Premium SKU for WAF', compliant=hasWAF )"
     },
     {
       "guid": "7f408960-c626-44cb-a018-347c8d790cdf",
@@ -2080,7 +2080,7 @@
       "severity": "High",
       "text": "Enable Endpoint Protection on IaaS Servers.",
       "queryable": true,
-      "graph": "securityresources | where type == 'microsoft.security/assessments' | extend assessmentName = tostring(properties.displayName), statusCode = tostring(properties.status.code) | where assessmentName has 'Endpoint protection' or assessmentName has 'Microsoft Defender for Endpoint' | extend compliant = iff(statusCode == 'Healthy', 1, 0) | project name, id, assessmentName, compliant"
+      "graph": "securityresources | where type =~ 'microsoft.security/assessments' | where properties.displayName has 'Endpoint protection'   or properties.displayName has 'endpoint protection'   or properties.displayName has 'Defender for Endpoint'   or properties.displayName has 'Install endpoint protection'   or properties.displayName has 'Machines should have' | extend statusCode = tostring(properties.status.code) | extend assessmentName = tostring(properties.displayName) | extend resourceId = tostring(properties.resourceDetails.Id) | extend compliant = iff(statusCode =~ 'Healthy', true, false) | project id=resourceId, name=tostring(split(resourceId, '/')[-1]),   resourceGroup=tostring(split(resourceId, '/')[4]),   subscriptionId=tostring(split(resourceId, '/')[2]),   checkItem='Endpoint Protection',   assessmentName,   currentValue=strcat('Status: ', statusCode, ' (', assessmentName, ')'),   expectedValue='Healthy', compliant | union (   resources   | where type =~ 'microsoft.compute/virtualmachines/extensions'   | where name has 'MDE' or name has 'EndpointProtection' or name has 'IaaSAntimalware'     or name has 'MicrosoftMonitoringAgent'   | extend parentVM = tostring(split(id, '/extensions/')[0])   | project id=parentVM, name=tostring(split(parentVM, '/')[-1]),     resourceGroup=tostring(split(parentVM, '/')[4]),     subscriptionId=tostring(split(parentVM, '/')[2]),     checkItem='Endpoint Protection Extension',     currentValue=strcat('Extension: ', name, ', Status: ', tostring(properties.provisioningState)),     expectedValue='MDE.Windows/MDE.Linux or IaaSAntimalware installed',     compliant=iff(tostring(properties.provisioningState) =~ 'Succeeded', true, false) )"
     },
     {
       "guid": "15833ee7-ad6c-46d3-9331-65c7acbe44ab",
@@ -2143,7 +2143,7 @@
       "severity": "High",
       "text": "Enable container soft delete for the storage account to recover a deleted container and its contents.",
       "queryable": true,
-      "graph": "resources | where type == 'microsoft.storage/storageaccounts/blobservices' | extend containerSoftDelete = properties.containerDeleteRetentionPolicy.enabled | extend compliant = iff(containerSoftDelete == true, 1, 0) | project name, id, compliant"
+      "graph": "resources | where type =~ 'microsoft.storage/storageaccounts' | extend kind = tostring(kind) | where kind =~ 'StorageV2' or kind =~ 'BlobStorage' or kind =~ 'BlockBlobStorage' | extend blobSvcProps = properties.blobServices | project id, name, resourceGroup, subscriptionId, kind,   checkItem='Container Soft Delete' | join kind=leftouter (   resources   | where type =~ 'microsoft.storage/storageaccounts/blobservices'   | extend containerSoftDelete = tostring(properties.containerDeleteRetentionPolicy.enabled)   | extend retentionDays = tostring(properties.containerDeleteRetentionPolicy.days)   | extend parentAccount = tolower(substring(id, 0, indexof(tolower(id), '/blobservices')))   | project parentAccount, containerSoftDelete, retentionDays ) on $left.id == $right.parentAccount | extend compliant = iff(containerSoftDelete =~ 'true', true, false) | project id, name, resourceGroup, subscriptionId, checkItem,   currentValue=strcat('SoftDelete: ', iff(isnotempty(containerSoftDelete), containerSoftDelete, 'Not configured'),     iff(isnotempty(retentionDays), strcat(', Retention: ', retentionDays, ' days'), '')),   expectedValue='Enabled with appropriate retention', compliant"
     },
     {
       "guid": "31e77d70-f001-455b-93aa-6d05eea10968",
