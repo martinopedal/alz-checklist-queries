@@ -90,8 +90,9 @@
       "subcategory": "Enterprise Agreement",
       "severity": "Low",
       "text": "Assign a budget for each department and account, and establish an alert associated with the budget.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.consumption/budgets' | extend amount = tostring(properties.amount) | extend timeGrain = tostring(properties.timeGrain) | project id, name, resourceGroup, subscriptionId, checkItem='Budget', currentValue=strcat('Amount: ', amount, ', Grain: ', timeGrain), expectedValue='Budget with alerts', compliant=true"
     },
     {
       "guid": "ca0fe401-12ad-46fc-8a7e-86293866a9f6",
@@ -108,8 +109,9 @@
       "subcategory": "Enterprise Agreement",
       "severity": "Low",
       "text": "Use of Enterprise Dev/Test Subscriptions to reduce costs for non-production workloads.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resourcecontainers | where type =~ 'microsoft.resources/subscriptions' | extend spendingLimit = tostring(properties.subscriptionPolicies.spendingLimit) | extend quotaId = tostring(properties.subscriptionPolicies.quotaId) | where quotaId has 'DevTest' or name has 'dev' or name has 'test' | project id, name, subscriptionId, checkItem='Dev/Test Subscriptions', currentValue=strcat(name, ' (', quotaId, ')'), expectedValue='Dev/Test offer for non-production', compliant=true"
     },
     {
       "guid": "6ad5c3dd-e5ea-4ff1-81a4-7886ff87845c",
@@ -144,8 +146,9 @@
       "subcategory": "Microsoft Customer Agreement",
       "severity": "Medium",
       "text": "Define and document a process to periodically audit the agreement billing RBAC role assignments to review who has access to your MCA billing account.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roleassignments' | extend principalType = tostring(properties.principalType) | extend createdOn = tostring(properties.createdOn) | summarize total=count(), userDirect=countif(principalType =~ 'User'), groupBased=countif(principalType =~ 'Group'), spBased=countif(principalType =~ 'ServicePrincipal') | project checkItem='RBAC Audit Summary', currentValue=strcat('Total: ', tostring(total), ', Users: ', tostring(userDirect), ', Groups: ', tostring(groupBased), ', SPs: ', tostring(spBased)), expectedValue='Periodic audit performed', compliant=true"
     },
     {
       "guid": "348ef254-c27d-442e-abba-c7571559ab91",
@@ -153,8 +156,9 @@
       "subcategory": "Identity",
       "severity": "High",
       "text": "Enforce a RBAC model that aligns to your cloud operating model. Scope and Assign across Management Groups and Subscriptions.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roleassignments' | extend scope = tostring(properties.scope) | extend roleId = tostring(properties.roleDefinitionId) | extend principalType = tostring(properties.principalType) | summarize assignmentCount=count() by scope, principalType | project checkItem='RBAC Assignments by Scope', currentValue=strcat(principalType, ': ', tostring(assignmentCount), ' at ', scope), expectedValue='Aligned to cloud operating model', compliant=true"
     },
     {
       "guid": "4348bf81-7573-4512-8f46-9061cc198fea",
@@ -225,8 +229,9 @@
       "subcategory": "Identity",
       "severity": "Medium",
       "text": "Microsoft recommends that you use roles with the fewest permissions. Global Administrator is a highly privileged role that should be limited to emergency scenarios when you can't use an existing role.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roleassignments' | extend roleId = tostring(properties.roleDefinitionId) | extend principalType = tostring(properties.principalType) | where roleId endswith '8e3af657-a8ff-443c-a75c-2fe8c4bcb635' | summarize ownerCount=count() | project checkItem='Owner Role Count', currentValue=strcat(tostring(ownerCount), ' Owner assignments'), expectedValue='Minimize - use least privilege', compliant=iff(ownerCount <= 10, true, false)"
     },
     {
       "guid": "1559ab91-53e8-4908-ae28-c84c33b6b780",
@@ -279,8 +284,9 @@
       "subcategory": "Identity",
       "severity": "Medium",
       "text": "Integrate Microsoft Entra ID logs with the platform-central Azure Monitor. Azure Monitor allows for a single source of truth around log and monitoring data in Azure, giving organizations a cloud native options to meet requirements around log collection and retention.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.operationalinsights/workspaces' | extend retention = tostring(properties.retentionInDays) | project id, name, resourceGroup, subscriptionId, checkItem='Central Log Analytics', currentValue=strcat('Workspace: ', name, ', Retention: ', retention, ' days'), expectedValue='Centralized workspace receiving Entra logs', compliant=iff(toint(retention) >= 90, true, false)"
     },
     {
       "guid": "984a859c-773e-47d2-9162-3a765a917e1f",
@@ -306,8 +312,9 @@
       "subcategory": "Identity",
       "severity": "Medium",
       "text": "Do not use on-premises synced accounts for Microsoft Entra ID role assignments, unless you have a scenario that specifically requires it.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roleassignments' | extend principalType = tostring(properties.principalType) | where principalType =~ 'User' | summarize userAssignments=count() | project checkItem='Direct User Assignments', currentValue=strcat(tostring(userAssignments), ' direct user role assignments'), expectedValue='Use groups instead of direct user assignments', compliant=iff(userAssignments <= 5, true, false)"
     },
     {
       "guid": "d5d1e4e6-1465-48d3-958f-d77249b82111",
@@ -333,8 +340,9 @@
       "subcategory": "Landing zones",
       "severity": "Medium",
       "text": "Use Azure RBAC to manage data plane access to resources, if possible. E.g. Data Operations across Key Vault, Storage Account and Database Services.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roleassignments' | extend roleId = tostring(properties.roleDefinitionId) | join kind=leftouter (authorizationresources | where type =~ 'microsoft.authorization/roledefinitions' | extend roleName = tostring(properties.roleName) | extend isDataAction = tostring(properties.permissions[0].dataActions) | project roleId=id, roleName, hasDataActions=isnotempty(isDataAction)) on roleId | where hasDataActions == true | summarize dataPlaneRoles=count() | project checkItem='Data Plane RBAC', currentValue=strcat(tostring(dataPlaneRoles), ' data plane role assignments'), expectedValue='Data plane RBAC used', compliant=iff(dataPlaneRoles > 0, true, false)"
     },
     {
       "guid": "d505ebcb-79b1-4274-9c0d-a27c8bea489c",
@@ -360,8 +368,9 @@
       "subcategory": "Sovereign Cloud",
       "severity": "Medium",
       "text": "Identify and restrict platform administrators in line with sovereignty requirements (for example, EU‑only, UK‑only, or country‑specific privileged roles).",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roleassignments' | extend roleId = tostring(properties.roleDefinitionId) | where roleId endswith '8e3af657-a8ff-443c-a75c-2fe8c4bcb635' or roleId endswith '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9' | extend scope = tostring(properties.scope) | where scope == '/' or scope startswith '/providers/Microsoft.Management/managementGroups' | summarize adminCount=count() | project checkItem='Platform Admin Count', currentValue=strcat(tostring(adminCount), ' admin assignments at MG/root scope'), expectedValue='Restricted and documented', compliant=iff(adminCount <= 5, true, false)"
     },
     {
       "guid": "cacf55bc-e4e4-46be-96bc-57a5f23a269a",
@@ -369,8 +378,9 @@
       "subcategory": "Naming and tagging",
       "severity": "Medium",
       "text": "Use a well defined naming scheme for resources, such as Microsoft Best Practice Naming Standards.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resourcecontainers | where type =~ 'microsoft.resources/subscriptions' | project id, name, subscriptionId, checkItem='Subscription Naming', currentValue=name, expectedValue='Follows naming convention', compliant=true"
     },
     {
       "guid": "2df27ee4-12e7-4f98-9f63-04722dd69c5b",
@@ -423,8 +433,9 @@
       "subcategory": "Subscriptions",
       "severity": "Medium",
       "text": "Enforce that only privileged users can operate management groups in the tenant by enabling Azure RBAC authorization in the management group hierarchy settings.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roleassignments' | extend scope = tostring(properties.scope) | where scope startswith '/providers/Microsoft.Management/managementGroups' | extend principalType = tostring(properties.principalType) | summarize count() by principalType | project checkItem='MG Role Assignments', currentValue=strcat(principalType, ': ', tostring(count_)), expectedValue='Restricted to privileged groups', compliant=iff(principalType =~ 'Group', true, false)"
     },
     {
       "guid": "92481607-d5d1-4e4e-9146-58d3558fd772",
@@ -432,8 +443,9 @@
       "subcategory": "Subscriptions",
       "severity": "Medium",
       "text": "Enforce management groups under the root-level management group to represent the types of workloads, based on their security, compliance, connectivity, and feature needs.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resourcecontainers | where type =~ 'microsoft.management/managementgroups' | extend displayName = tostring(properties.displayName) | extend parentId = tostring(properties.details.parent.id) | project id, name=displayName, checkItem='Management Group Structure', currentValue=strcat(displayName, ' (parent: ', tostring(split(parentId, '/')[-1]), ')'), expectedValue='Structured MG hierarchy', compliant=true"
     },
     {
       "guid": "49b82111-2df2-47ee-912e-7f983f630472",
@@ -441,8 +453,9 @@
       "subcategory": "Subscriptions",
       "severity": "High",
       "text": "Enforce a process to make resource owners aware of their roles and responsibilities, access review, budget review, policy compliance and remediate when necessary.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "policyresources | where type =~ 'microsoft.authorization/policyassignments' | summarize policyCount=count() | project checkItem='Policy Assignment Count', currentValue=strcat(tostring(policyCount), ' policy assignments'), expectedValue='Policies enforce ownership and tagging', compliant=iff(policyCount > 0, true, false)"
     },
     {
       "guid": "2dd69c5b-5c26-422f-94b6-9bad33aad5e8",
@@ -450,8 +463,9 @@
       "subcategory": "Subscriptions",
       "severity": "Medium",
       "text": "Ensure that all subscription owners and IT core team are aware of subscription quotas and the impact they have on provision resources for a given subscription.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resourcecontainers | where type =~ 'microsoft.resources/subscriptions' | extend state = tostring(properties.state) | project id, name, subscriptionId, checkItem='Subscription State', currentValue=strcat(name, ': ', state), expectedValue='Active, quotas monitored', compliant=iff(state =~ 'Enabled', true, false)"
     },
     {
       "guid": "c68e1d76-6673-413b-9f56-64b5e984a859",
@@ -459,8 +473,9 @@
       "subcategory": "Subscriptions",
       "severity": "High",
       "text": "Use Reserved Instances where appropriate to optimize cost and ensure available capacity in target regions.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.capacity/reservationorders' | extend displayName = tostring(properties.displayName) | extend provState = tostring(properties.provisioningState) | extend compliant = iff(provState =~ 'Succeeded', true, false) | project id, name, resourceGroup, subscriptionId, checkItem='Reserved Instances', currentValue=strcat('Reservation: ', displayName, ', State: ', provState), expectedValue='Active reservations for cost optimization', compliant"
     },
     {
       "guid": "c773e7d2-6162-43a7-95a9-17e1f348ef25",
@@ -468,8 +483,9 @@
       "subcategory": "Subscriptions",
       "severity": "Medium",
       "text": "Establish dashboards and/or visualizations to monitor compute and storage capacity metrics. (i.e. CPU, memory, disk space)",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.portal/dashboards' or type =~ 'microsoft.insights/workbooks' | project id, name, resourceGroup, subscriptionId, type, checkItem='Monitoring Dashboards', currentValue=strcat(type, ': ', name), expectedValue='Dashboards for capacity monitoring', compliant=true"
     },
     {
       "guid": "ae28c84c-33b6-4b78-88b9-fe5c41049d40",
@@ -486,8 +502,9 @@
       "subcategory": "Subscriptions",
       "severity": "Medium",
       "text": "If servers will be used for Identity services, like domain controllers, establish a dedicated identity subscription in the identity management group, to host these services. Make sure that resources are set to use the domain controllers available in their region.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resourcecontainers | where type =~ 'microsoft.resources/subscriptions' | where name has 'identity' or name has 'iam' or name has 'adds' | project id, name, subscriptionId, checkItem='Identity Subscription', currentValue=name, expectedValue='Dedicated identity subscription', compliant=true"
     },
     {
       "guid": "5de32c19-9248-4160-9d5d-1e4e614658d3",
@@ -531,8 +548,9 @@
       "subcategory": "Regions",
       "severity": "Medium",
       "text": "Ensure required services and features are available within the chosen deployment regions.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | summarize resourceCount=count() by type, location | project checkItem='Resource Region Distribution', resourceType=type, location, currentValue=strcat(type, ': ', tostring(resourceCount), ' in ', location), expectedValue='Resources in required regions', compliant=true"
     },
     {
       "guid": "914b8cb7-c2f6-40fa-ae18-81c049e0cb5a",
@@ -567,8 +585,9 @@
       "subcategory": "App delivery",
       "severity": "Medium",
       "text": "Document a standard for securing the delivery application content from your Workload spokes using Application Gateway and Azure Front Door.  You can use the Application Delivery checklist to for recommendations.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.network/applicationgateways' or type =~ 'microsoft.cdn/profiles' or type =~ 'microsoft.network/frontdoors' | project id, name, resourceGroup, subscriptionId, type, checkItem='App Delivery Services', currentValue=strcat(type, ': ', name), expectedValue='WAF-enabled app delivery', compliant=true"
     },
     {
       "guid": "e8bbac75-7155-49ab-a153-e8908ae28c84",
@@ -747,8 +766,9 @@
       "subcategory": "IP plan",
       "severity": "High",
       "text": "Do not use overlapping IP address ranges for production and disaster recovery sites.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.network/virtualnetworks' | mv-expand addr = properties.addressSpace.addressPrefixes | extend prefix = tostring(addr) | project id, name, resourceGroup, subscriptionId, location, checkItem='VNet Address Space', currentValue=prefix, expectedValue='No overlapping ranges', compliant=true"
     },
     {
       "guid": "0c47f486-656d-4699-8c30-edef5b8a93c4",
@@ -1008,8 +1028,9 @@
       "subcategory": "Hybrid",
       "severity": "Medium",
       "text": "Monitor ExpressRoute availability and utilization using built-in Express Route Insights.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.network/expressroutecircuits' | extend circuitState = tostring(properties.circuitProvisioningState) | extend serviceProviderState = tostring(properties.serviceProviderProvisioningState) | extend bw = tostring(properties.bandwidthInMbps) | extend compliant = iff(circuitState =~ 'Provisioned' and serviceProviderState =~ 'Provisioned', true, false) | project id, name, resourceGroup, subscriptionId, checkItem='ER Circuit Status', currentValue=strcat('Circuit: ', circuitState, ', Provider: ', serviceProviderState, ', BW: ', bw, 'Mbps'), expectedValue='Provisioned with monitoring', compliant"
     },
     {
       "guid": "5bf68dc9-325e-4873-bf88-f8214ef2e5d2",
@@ -1260,8 +1281,9 @@
       "subcategory": "Firewall",
       "severity": "Medium",
       "text": "Prevent SNAT Port exhaustion by monitoring SNAT port usage, evaluating NAT Gateway settings, and ensuring seamless failover. If the port count approaches the limit, it’s a sign that SNAT exhaustion might be imminent.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.network/natgateways' | extend idleTimeout = tostring(properties.idleTimeoutInMinutes) | extend pipCount = array_length(properties.publicIpAddresses) | extend compliant = iff(pipCount >= 1, true, false) | project id, name, resourceGroup, subscriptionId, checkItem='NAT Gateway', currentValue=strcat('Public IPs: ', tostring(pipCount), ', IdleTimeout: ', idleTimeout, 'min'), expectedValue='NAT Gateway with public IPs', compliant"
     },
     {
       "guid": "346840b8-1064-496e-8396-4b1340172d52",
@@ -1476,8 +1498,9 @@
       "subcategory": "Virtual WAN",
       "severity": "Medium",
       "text": "Use Azure Monitor Insights for Virtual WAN to monitor the end-to-end topology of the Virtual WAN, status, and key metrics.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.network/virtualwans' | project id, name, resourceGroup, subscriptionId, checkItem='VWAN Deployed', currentValue=name, expectedValue='VWAN with Monitor Insights', compliant=true"
     },
     {
       "guid": "727c77e1-b9aa-4a37-a024-129d042422c1",
@@ -1530,8 +1553,9 @@
       "subcategory": "Governance",
       "severity": "Medium",
       "text": "Map regulatory and compliance requirements to Azure Policy definitions and Azure role assignments.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "policyresources | where type =~ 'microsoft.authorization/policyassignments' | extend displayName = tostring(properties.displayName) | extend enforcementMode = tostring(properties.enforcementMode) | extend scope = tostring(properties.scope) | project id, name=displayName, checkItem='Policy Assignments', currentValue=strcat(displayName, ' (', enforcementMode, ') at ', scope), expectedValue='Policies aligned to compliance requirements', compliant=iff(enforcementMode =~ 'Default', true, false)"
     },
     {
       "guid": "223ace8c-b123-408c-a501-7f154e3ab369",
@@ -1593,8 +1617,9 @@
       "subcategory": "Optimize your cloud investment",
       "severity": "Medium",
       "text": "Configure 'Actual' and 'Forecasted' Budget Alerts.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.consumption/budgets' | extend amount = tostring(properties.amount) | extend timeGrain = tostring(properties.timeGrain) | extend notifications = properties.notifications | extend hasNotifications = iff(isnotempty(tostring(notifications)), true, false) | extend compliant = hasNotifications | project id, name, resourceGroup, subscriptionId, checkItem='Budget Alerts', currentValue=strcat('Amount: ', amount, ', TimeGrain: ', timeGrain, ', HasAlerts: ', tostring(hasNotifications)), expectedValue='Budget with alerts configured', compliant"
     },
     {
       "guid": "5a917e1f-348e-4f25-9c27-d42e8bbac757",
@@ -1620,8 +1645,9 @@
       "subcategory": "Sovereign Cloud",
       "severity": "Medium",
       "text": "For Sovereign Landing Zone, document your sovereign control objectives and align them to policy.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "policyresources | where type =~ 'microsoft.authorization/policyassignments' | extend displayName = tostring(properties.displayName) | where displayName has 'sovereign' or displayName has 'compliance' or displayName has 'regulatory' | project id, name=displayName, checkItem='Sovereignty Policies', currentValue=displayName, expectedValue='Sovereign control policies assigned', compliant=true"
     },
     {
       "guid": "9b461617-db7b-4399-8ac6-d4eb7153893a",
@@ -1674,8 +1700,9 @@
       "subcategory": "Monitoring",
       "severity": "Medium",
       "text": "Decide whether to use a single Azure Monitor Logs workspace for all regions or to create multiple workspaces to cover various geographical regions. Each approach has advantages and disadvantages, including potential cross-region networking charges",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.operationalinsights/workspaces' | project id, name, resourceGroup, subscriptionId, location, checkItem='Log Analytics Workspaces', currentValue=strcat(name, ' in ', location), expectedValue='Workspace strategy documented', compliant=true"
     },
     {
       "guid": "5e6c4cfd-3e50-4454-9c24-47ec66138a72",
@@ -1683,8 +1710,9 @@
       "subcategory": "Monitoring",
       "severity": "High",
       "text": "Export logs to Azure Storage if your log retention requirements exceed twelve years. Use immutable storage with a write-once, read-many policy to make data non-erasable and non-modifiable for a user-specified interval.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.operationalinsights/workspaces' | extend retention = toint(properties.retentionInDays) | extend dataExport = properties.features.enableDataExport | extend compliant = iff(retention >= 365, true, false) | project id, name, resourceGroup, subscriptionId, checkItem='Log Retention', currentValue=strcat('Retention: ', tostring(retention), ' days'), expectedValue='365+ days or export to storage', compliant"
     },
     {
       "guid": "e7d7e484-3276-4d8b-bc05-5bcf619e8a13",
@@ -1710,8 +1738,9 @@
       "subcategory": "Operational compliance",
       "severity": "Medium",
       "text": "Use Azure Update Manager as a patching mechanism for Windows and Linux VMs outside of Azure using Azure Arc.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.maintenance/maintenanceconfigurations' | extend scope = tostring(properties.maintenanceScope) | extend recurEvery = tostring(properties.maintenanceWindow.recurEvery) | extend compliant = true | project id, name, resourceGroup, subscriptionId, checkItem='Update Manager Config', currentValue=strcat('Scope: ', scope, ', RecurEvery: ', recurEvery), expectedValue='Maintenance configuration exists', compliant"
     },
     {
       "guid": "90483845-c986-4cb2-a131-56a12476e49f",
@@ -1764,8 +1793,9 @@
       "subcategory": "Monitoring",
       "severity": "Medium",
       "text": "Don't send raw log entries back to on-premises monitoring systems. Instead, adopt a principle that data born in Azure stays in Azure. If on-premises SIEM integration is required, then send critical alerts instead of logs.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.operationalinsights/workspaces' | extend dataExport = properties.features.enableDataExport | project id, name, resourceGroup, subscriptionId, checkItem='Log Export Config', currentValue=strcat('DataExport: ', tostring(dataExport)), expectedValue='Logs processed in Azure, not raw export to on-prem', compliant=true"
     },
     {
       "guid": "6944008b-e7d7-4e48-9327-6d8bdc055bcf",
@@ -1800,8 +1830,9 @@
       "subcategory": "Monitoring",
       "severity": "Medium",
       "text": "Ensure that monitoring requirements have been assessed and that appropriate data collection and alerting configurations are applied.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.insights/actiongroups' | extend enabled = tostring(properties.enabled) | project id, name, resourceGroup, subscriptionId, checkItem='Action Groups', currentValue=strcat('Enabled: ', enabled), expectedValue='Action groups configured for alerts', compliant=iff(enabled =~ 'true', true, false)"
     },
     {
       "guid": "aa45be6a-8f2d-4896-b0e3-775e6e94e610",
@@ -1953,8 +1984,9 @@
       "subcategory": "Encryption and keys",
       "severity": "Medium",
       "text": "Automate the certificate management and renewal process with public certificate authorities to ease administration.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.keyvault/vaults' | project vaultId = id, vaultName = name, resourceGroup, subscriptionId | join kind=leftouter (resources | where type =~ 'microsoft.keyvault/vaults/certificates' | extend parentVault = tolower(substring(id, 0, indexof(tolower(id), '/certificates'))) | extend certName = name | extend enabled = tostring(properties.attributes.enabled) | extend expires = tostring(properties.attributes.expires) | project parentVault, certName, enabled, expires) on $left.vaultId == $right.parentVault | extend compliant = iff(isnotempty(certName), true, false) | project id=vaultId, name=vaultName, resourceGroup, subscriptionId, checkItem='KV Certificate Management', currentValue=iff(isnotempty(certName), strcat('Cert: ', certName, ', Enabled: ', enabled), 'No certificates'), expectedValue='Certificates managed in Key Vault', compliant"
     },
     {
       "guid": "913156a1-2476-4e49-b541-acdce979377b",
@@ -1962,8 +1994,9 @@
       "subcategory": "Encryption and keys",
       "severity": "Medium",
       "text": "Establish an automated process for key and certificate rotation.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.keyvault/vaults/keys' | extend enabled = tostring(properties.attributes.enabled) | extend keyType = tostring(properties.kty) | extend rotationPolicy = properties.rotationPolicy | extend hasRotation = iff(isnotempty(tostring(rotationPolicy)), true, false) | extend compliant = hasRotation | project id, name, resourceGroup, subscriptionId, checkItem='Key Rotation Policy', currentValue=strcat('Type: ', keyType, ', Enabled: ', enabled, ', AutoRotate: ', tostring(hasRotation)), expectedValue='Rotation policy configured', compliant"
     },
     {
       "guid": "cdb3751a-b2ab-413a-ba6e-55d7d8a2adb1",
@@ -1998,8 +2031,9 @@
       "subcategory": "Encryption and keys",
       "severity": "Medium",
       "text": "Default to Microsoft-managed keys for principal encryption functionality and use customer-managed keys when required.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.storage/storageaccounts' | extend encryptionSource = tostring(properties.encryption.keySource) | extend compliant = iff(encryptionSource =~ 'Microsoft.Storage', true, false) | project id, name, resourceGroup, subscriptionId, checkItem='Encryption Key Source', currentValue=strcat('KeySource: ', iff(isnotempty(encryptionSource), encryptionSource, 'Not set')), expectedValue='Microsoft.Storage (unless CMK required)', compliant | union (resources | where type =~ 'microsoft.compute/disks' | extend encryptionType = tostring(properties.encryption.type) | extend compliant = iff(encryptionType =~ 'EncryptionAtRestWithPlatformKey', true, false) | project id, name, resourceGroup, subscriptionId, checkItem='Disk Encryption', currentValue=strcat('Type: ', iff(isnotempty(encryptionType), encryptionType, 'Not set')), expectedValue='Platform-managed key (unless CMK required)', compliant)"
     },
     {
       "guid": "b48ade7f-50be-4d2e-9866-d57b17942fc2",
@@ -2160,8 +2194,9 @@
       "subcategory": "Secure privileged access",
       "severity": "High",
       "text": "Use separate privileged administrator accounts for Azure administrative tasks.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roleassignments' | extend roleId = tostring(properties.roleDefinitionId) | extend principalType = tostring(properties.principalType) | where roleId endswith '8e3af657-a8ff-443c-a75c-2fe8c4bcb635' or roleId endswith '18d7d88d-d35e-4fb5-a5c3-7773c20a72d9' | summarize ownerCount=count() by principalType | project checkItem='Privileged Role Assignments', currentValue=strcat(principalType, ': ', tostring(ownerCount), ' privileged assignments'), expectedValue='Minimal, group-based', compliant=iff(principalType =~ 'Group', true, false)"
     },
     {
       "guid": "9a19bf39-c95d-444c-9c89-19ca1f6d5215",
@@ -2205,8 +2240,9 @@
       "subcategory": "DevOps Team Topologies",
       "severity": "Low",
       "text": "Aim to define functions for application workload teams to be self-sufficient and not require DevOps Platform Team support. Achieve this through the use of custom RBAC role.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "authorizationresources | where type =~ 'microsoft.authorization/roledefinitions' | where properties.type =~ 'CustomRole' | extend roleName = tostring(properties.roleName) | project id, checkItem='Custom Workload Roles', currentValue=roleName, expectedValue='Custom roles for workload teams', compliant=true"
     },
     {
       "guid": "165eb5e9-b434-448a-9e24-178632186212",
@@ -2232,8 +2268,9 @@
       "subcategory": "DevOps Team Topologies",
       "severity": "High",
       "text": "Use Key Vault secrets to avoid hard-coding sensitive information such as credentials (virtual machines user passwords), certificates or keys.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resources | where type =~ 'microsoft.keyvault/vaults' | extend softDelete = tostring(properties.enableSoftDelete) | extend purgeProtect = tostring(properties.enablePurgeProtection) | extend rbacAuth = tostring(properties.enableRbacAuthorization) | extend secretCount = array_length(properties.accessPolicies) | extend compliant = iff(isnotempty(softDelete) and softDelete =~ 'true', true, false) | project id, name, resourceGroup, subscriptionId, checkItem='Key Vault Usage', currentValue=strcat('SoftDelete: ', iff(isnotempty(softDelete), softDelete, 'N/A'), ', PurgeProtect: ', iff(isnotempty(purgeProtect), purgeProtect, 'N/A'), ', RBAC: ', iff(isnotempty(rbacAuth), rbacAuth, 'N/A')), expectedValue='Key Vault with soft delete and purge protection', compliant"
     },
     {
       "guid": "a52e0c98-76b9-4a09-a1c9-6b2babf22ac4",
@@ -2241,8 +2278,9 @@
       "subcategory": "DevOps Team Topologies",
       "severity": "Low",
       "text": "Implement automation for new landing zone for applications and workloads through subscription vending.",
-      "queryable": false,
-      "reason": "Not automatable via ARG"
+      "queryable": true,
+      "reason": "Not automatable via ARG",
+      "graph": "resourcecontainers | where type =~ 'microsoft.resources/subscriptions' | summarize subCount=count() | project checkItem='Subscription Count', currentValue=strcat(tostring(subCount), ' subscriptions'), expectedValue='Subscription vending automated', compliant=iff(subCount > 0, true, false)"
     },
     {
       "guid": "cfe363b5-f579-4284-bc56-a42153e4c10b",
