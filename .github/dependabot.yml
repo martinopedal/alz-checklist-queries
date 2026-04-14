@@ -1,12 +1,5 @@
 version: 2
 
-updates:
-  - package-ecosystem: github-actions
-    directory: "/"
-    schedule:
-      interval: weekly
-      day: monday
-    open-pull-requests-limit: 5
-    labels:
-      - dependencies
-      - ci
+# No GitHub Actions workflows in this repo - dependabot github-actions disabled
+# Add a workflow file first if you want Actions version tracking
+updates: []
