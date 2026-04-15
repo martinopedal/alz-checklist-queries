@@ -1,5 +1,0 @@
-version: 2
-
-# No GitHub Actions workflows in this repo - dependabot github-actions disabled
-# Add a workflow file first if you want Actions version tracking
-updates: []

@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate PowerShell syntax
+        shell: pwsh
+        run: |
+          $errors = 0
+          Get-ChildItem -Recurse -Filter '*.ps1' | ForEach-Object {
+            $tokens = $null; $parseErrors = $null
+            [System.Management.Automation.Language.Parser]::ParseFile($_.FullName, [ref]$tokens, [ref]$parseErrors) | Out-Null
+            if ($parseErrors.Count -gt 0) {
+              Write-Error "Parse errors in $($_.FullName): $($parseErrors -join ', ')"
+              $errors++
+            } else {
+              Write-Host "✓ $($_.Name)"
+            }
+          }
+          if ($errors -gt 0) { exit 1 }
+          Write-Host "All PowerShell files pass syntax validation."
